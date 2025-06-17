@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Fusão de Imagens - p5.js</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.js"></script>
+</head>
+<body>
+  <main></main>
+  <script>
+
+let imagens = [];
+let imagemFusao;
+
+let botaoAdicionar;
+let botaoLimpar;
+let botaoSalvar;
+let sliderOpacidade;
+
+// Input invisível
+let fileInput;
+
+function setup() {
+  createCanvas(900, 700);
+  imagemFusao = createGraphics(width, height - 100);
+
+  // Criando um input invisível para seleção de arquivos
+  fileInput = createFileInput(handleFile);
+  fileInput.hide();
+
+  // Botões
+  botaoAdicionar = createButton('Adicionar Imagem');
+  botaoAdicionar.position(20, height - 60);
+  botaoAdicionar.mousePressed(() => fileInput.elt.click());
+
+  botaoLimpar = createButton('Limpar');
+  botaoLimpar.position(160, height - 60);
+  botaoLimpar.mousePressed(() => imagens = []);
+
+  botaoSalvar = createButton('Salvar');
+  botaoSalvar.position(240, height - 60);
+  botaoSalvar.mousePressed(() => save(imagemFusao, 'fusao.png'));
+
+  sliderOpacidade = createSlider(0, 1, 1, 0.01);
+  sliderOpacidade.position(320, height - 55);
+}
+
+function draw() {
+  background(40);
+  imagemFusao.clear();
+
+  if (imagens.length > 0) {
+    imagemFusao.loadPixels();
+
+    for (let i = 0; i < imagens.length; i++) {
+      imagemFusao.image(imagens[i], 0, 0, width, height - 100);
+    }
+
+    imagemFusao.loadPixels();
+
+    let opacidade = sliderOpacidade.value();
+    let d = pixelDensity();
+    let totalPixels = 4 * (width * d) * (height - 100) * d;
+
+    for (let i = 0; i < totalPixels; i += 4) {
+      let r = 0, g = 0, b = 0;
+
+      for (let img of imagens) {
+        r += img.pixels[i] || 0;
+        g += img.pixels[i + 1] || 0;
+        b += img.pixels[i + 2] || 0;
+      }
+
+      r = (r / imagens.length) * opacidade;
+      g = (g / imagens.length) * opacidade;
+      b = (b / imagens.length) * opacidade;
+
+      imagemFusao.pixels[i] = r;
+      imagemFusao.pixels[i + 1] = g;
+      imagemFusao.pixels[i + 2] = b;
+      imagemFusao.pixels[i + 3] = 255;
+    }
+
+    imagemFusao.updatePixels();
+    image(imagemFusao, 0, 0);
+  } else {
+    fill(255);
+    textAlign(CENTER);
+    textSize(20);
+    text("Clique em 'Adicionar Imagem' para carregar", width / 2, (height - 100) / 2);
+  }
+
+  fill(255);
+  noStroke();
+  textSize(14);
+  textAlign(LEFT);
+  text(`Total de imagens: ${imagens.length}`, 20, height - 70);
+  text(`Opacidade: ${nf(sliderOpacidade.value() * 100, 2, 0)}%`, 500, height - 40);
+}
+
+function handleFile(file) {
+  if (file.type === 'image') {
+    loadImage(file.data, img => {
+      img.resize(width, height - 100);
+      img.loadPixels();
+      imagens.push(img);
+    });
+  }
+}
+
+  </script>
+</body>
+</html>

@@ -2,112 +2,98 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <title>Fusão de Imagens - p5.js</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.js"></script>
+  <title>Fusão de Imagens</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #222;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      border: 2px solid white;
+    }
+    .controls {
+      margin: 10px;
+    }
+    button, input[type=range] {
+      margin: 5px;
+      padding: 8px;
+      border-radius: 5px;
+      border: none;
+    }
+  </style>
 </head>
 <body>
-  <main></main>
+
+  <h1>Fusão de Imagens</h1>
+
+  <div class="controls">
+    <button onclick="selecionarImagem()">Adicionar Imagem</button>
+    <button onclick="limparImagens()">Limpar</button>
+    <button onclick="salvarImagem()">Salvar</button>
+    <br>
+    Opacidade: <input type="range" id="opacidade" min="0" max="1" step="0.01" value="1">
+  </div>
+
+  <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="carregarImagem(event)">
+
   <script>
 
 let imagens = [];
-let imagemFusao;
-
-let botaoAdicionar;
-let botaoLimpar;
-let botaoSalvar;
-let sliderOpacidade;
-
-// Input invisível
-let fileInput;
+let canvasAltura = 600;
+let canvasLargura = 900;
 
 function setup() {
-  createCanvas(1900, 700);
-  imagemFusao = createGraphics(width, height - 100);
-
-  // Criando um input invisível para seleção de arquivos
-  fileInput = createFileInput(handleFile);
-  fileInput.hide();
-
-  // Botões
-  botaoAdicionar = createButton('Adicionar Imagem');
-  botaoAdicionar.position(20, height - 60);
-  botaoAdicionar.mousePressed(() => fileInput.elt.click());
-
-  botaoLimpar = createButton('Limpar');
-  botaoLimpar.position(160, height - 60);
-  botaoLimpar.mousePressed(() => imagens = []);
-
-  botaoSalvar = createButton('Salvar');
-  botaoSalvar.position(240, height - 60);
-  botaoSalvar.mousePressed(() => save(imagemFusao, 'fusao.png'));
-
-  sliderOpacidade = createSlider(0, 1, 1, 0.01);
-  sliderOpacidade.position(320, height - 55);
+  let c = createCanvas(canvasLargura, canvasAltura);
+  c.parent(document.body);
+  background(30);
 }
 
 function draw() {
-  background(40);
-  imagemFusao.clear();
+  background(30);
+  
+  let opacidade = parseFloat(document.getElementById('opacidade').value);
 
-  if (imagens.length > 0) {
-    imagemFusao.loadPixels();
+  imagens.forEach(img => {
+    tint(255, 255 * opacidade);
+    image(img, 0, 0, width, height);
+  });
 
-    for (let i = 0; i < imagens.length; i++) {
-      imagemFusao.image(imagens[i], 0, 0, width, height - 100);
-    }
-
-    imagemFusao.loadPixels();
-
-    let opacidade = sliderOpacidade.value();
-    let d = pixelDensity();
-    let totalPixels = 4 * (width * d) * (height - 100) * d;
-
-    for (let i = 0; i < totalPixels; i += 4) {
-      let r = 0, g = 0, b = 0;
-
-      for (let img of imagens) {
-        r += img.pixels[i] || 0;
-        g += img.pixels[i + 1] || 0;
-        b += img.pixels[i + 2] || 0;
-      }
-
-      r = (r / imagens.length) * opacidade;
-      g = (g / imagens.length) * opacidade;
-      b = (b / imagens.length) * opacidade;
-
-      imagemFusao.pixels[i] = r;
-      imagemFusao.pixels[i + 1] = g;
-      imagemFusao.pixels[i + 2] = b;
-      imagemFusao.pixels[i + 3] = 255;
-    }
-
-    imagemFusao.updatePixels();
-    image(imagemFusao, 0, 0);
-  } else {
-    fill(255);
-    textAlign(CENTER);
-    textSize(20);
-    text("Clique em 'Adicionar Imagem' para carregar", width / 2, (height - 100) / 2);
-  }
-
-  fill(255);
-  noStroke();
-  textSize(14);
-  textAlign(LEFT);
-  text(`Total de imagens: ${imagens.length}`, 20, height - 70);
-  text(`Opacidade: ${nf(sliderOpacidade.value() * 100, 2, 0)}%`, 500, height - 40);
+  noTint();
 }
 
-function handleFile(file) {
-  if (file.type === 'image') {
-    loadImage(file.data, img => {
-      img.resize(width, height - 100);
-      img.loadPixels();
-      imagens.push(img);
-    });
+function selecionarImagem() {
+  document.getElementById('fileInput').click();
+}
+
+function carregarImagem(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      loadImage(e.target.result, img => {
+        imagens.push(img);
+      });
+    };
+    reader.readAsDataURL(file);
   }
+}
+
+function limparImagens() {
+  imagens = [];
+}
+
+function salvarImagem() {
+  saveCanvas('fusao-imagens', 'png');
 }
 
   </script>
+
 </body>
 </html>

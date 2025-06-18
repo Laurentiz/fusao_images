@@ -90,7 +90,7 @@ async function uploadImagem(event) {
   const { error } = await supabase
     .storage
     .from('images')
-    .upload(filename, file, { cacheControl: '3600', upsert: false });
+    .upload(filename, file, { cacheControl: '3600', upsert: true });
 
   if (error) {
     alert('Erro ao enviar: ' + error.message);

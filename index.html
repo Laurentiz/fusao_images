@@ -3,24 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <title>Fusão de Imagens Compartilhadas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { background: #222; color: white; text-align: center; }
-    canvas { border: 2px solid white; display: block; margin: 10px auto; }
-    button, input[type=range] { margin: 5px; padding: 8px; border-radius: 5px; }
+    body { 
+      background: #111; 
+      color: white; 
+      text-align: center; 
+      font-family: sans-serif;
+    }
+    canvas { 
+      display: block; 
+      margin: 10px auto; 
+      border: 2px solid white;
+      max-width: 95vw;
+    }
+    button, input[type=range] {
+      margin: 5px;
+      padding: 8px;
+      border-radius: 5px;
+      border: none;
+      background: #444;
+      color: white;
+    }
   </style>
 </head>
 <body>
 
-<h1>Fusão de Imagens Compartilhadas</h1>
+<h2>Fusão de Imagens Compartilhadas</h2>
 
 <button onclick="selecionarImagem()">Adicionar Imagem</button>
 <button onclick="limparImagens()">Limpar</button>
-<button onclick="salvarImagem()">Salvar Canvas</button>
+<button onclick="salvarImagem()">Salvar</button>
 <br>
 Opacidade: <input type="range" id="opacidade" min="0" max="1" step="0.01" value="1">
-
 <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="uploadImagem(event)">
 
 <script>
@@ -31,17 +48,27 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let imagens = [];
-const canvasLargura = 900;
-const canvasAltura = 600;
+let canvasW, canvasH;
 
 function setup() {
-  createCanvas(canvasLargura, canvasAltura);
-  background(30);
+  calcularTamanhoCanvas();
+  createCanvas(canvasW, canvasH);
+  background(20);
   carregarImagensSupabase();
 }
 
+function windowResized() {
+  calcularTamanhoCanvas();
+  resizeCanvas(canvasW, canvasH);
+}
+
+function calcularTamanhoCanvas() {
+  canvasW = min(windowWidth * 0.95, 900);
+  canvasH = canvasW * 0.66;
+}
+
 function draw() {
-  background(30);
+  background(20);
   let opacidade = parseFloat(document.getElementById('opacidade').value);
   imagens.forEach(img => {
     tint(255, 255 * opacidade);
@@ -50,65 +77,4 @@ function draw() {
   noTint();
 }
 
-function selecionarImagem() {
-  document.getElementById('fileInput').click();
-}
-
-async function uploadImagem(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const filename = Date.now() + '-' + file.name;
-
-  const { error } = await supabase
-    .storage
-    .from('imagens') // Nome do bucket
-    .upload(filename, file);
-
-  if (error) {
-    alert('Erro ao enviar: ' + error.message);
-  } else {
-    const { data } = supabase
-      .storage
-      .from('imagens')
-      .getPublicUrl(filename);
-    loadImage(data.publicUrl, img => {
-      imagens.push(img);
-    });
-  }
-}
-
-async function carregarImagensSupabase() {
-  const { data, error } = await supabase
-    .storage
-    .from('imagens')
-    .list('', { limit: 100 });
-
-  if (error) {
-    console.log('Erro ao listar imagens: ', error.message);
-    return;
-  }
-
-  data.forEach(arquivo => {
-    const { data: urlData } = supabase
-      .storage
-      .from('imagens')
-      .getPublicUrl(arquivo.name);
-    loadImage(urlData.publicUrl, img => {
-      imagens.push(img);
-    });
-  });
-}
-
-function limparImagens() {
-  imagens = [];
-}
-
-function salvarImagem() {
-  saveCanvas('fusao-compartilhada', 'png');
-}
-
-</script>
-
-</body>
-</html>
+function selecionar

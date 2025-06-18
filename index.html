@@ -2,72 +2,78 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <title>Fusão de Imagens</title>
+  <title>Fusão de Imagens Compartilhadas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #222;
-      color: white;
+    body { 
+      background: #111; 
+      color: white; 
+      text-align: center; 
       font-family: sans-serif;
-      text-align: center;
     }
-    canvas {
-      display: block;
-      margin: 20px auto;
+    canvas { 
+      display: block; 
+      margin: 10px auto; 
       border: 2px solid white;
-    }
-    .controls {
-      margin: 10px;
+      max-width: 95vw;
     }
     button, input[type=range] {
       margin: 5px;
       padding: 8px;
       border-radius: 5px;
       border: none;
-    }
-    input[type=file] {
-      display: none;
+      background: #444;
+      color: white;
     }
   </style>
 </head>
 <body>
 
-  <h1>Fusão de Imagens</h1>
+<h2>Fusão de Imagens Compartilhadas</h2>
 
-  <div class="controls">
-    <button onclick="selecionarImagem()">Adicionar Imagem</button>
-    <button onclick="limparImagens()">Limpar</button>
-    <button onclick="salvarImagem()">Salvar</button>
-    <br>
-    Opacidade: <input type="range" id="opacidade" min="0" max="1" step="0.01" value="1">
-  </div>
+<button onclick="selecionarImagem()">Adicionar Imagem</button>
+<button onclick="limparImagens()">Limpar</button>
+<button onclick="salvarImagem()">Salvar</button>
+<br>
+Opacidade: <input type="range" id="opacidade" min="0" max="1" step="0.01" value="1">
+<input type="file" id="fileInput" accept="image/*" style="display:none" onchange="uploadImagem(event)">
 
-  <input type="file" id="fileInput" accept="image/*" onchange="carregarImagem(event)">
+<script>
 
-  <script>
+// 🔥 CONFIGURAÇÃO DO SUPABASE 🔥
+const SUPABASE_URL = 'https://dfkfqsjtpmovhvnigqgs.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRma2Zxc2p0cG1vdmh2bmlncWdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyMDI2MjQsImV4cCI6MjA2NTc3ODYyNH0.YE5NffW4rbu4mE45s96-AmSEFE9Dy4d6vu77wTF1DC0';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let imagens = [];
-const canvasAltura = 600;
-const canvasLargura = 900;
+let canvasW, canvasH;
 
 function setup() {
-  let c = createCanvas(canvasLargura, canvasAltura);
-  c.parent(document.body);
-  background(30);
+  calcularTamanhoCanvas();
+  createCanvas(canvasW, canvasH);
+  background(20);
+  carregarImagensSupabase();
+}
+
+function windowResized() {
+  calcularTamanhoCanvas();
+  resizeCanvas(canvasW, canvasH);
+}
+
+function calcularTamanhoCanvas() {
+  canvasW = min(windowWidth * 0.95, 900);
+  canvasH = canvasW * 0.66;
 }
 
 function draw() {
-  background(30);
-  
+  background(20);
   let opacidade = parseFloat(document.getElementById('opacidade').value);
-
   imagens.forEach(img => {
     tint(255, 255 * opacidade);
     image(img, 0, 0, width, height);
   });
-
   noTint();
 }
 
@@ -75,18 +81,50 @@ function selecionarImagem() {
   document.getElementById('fileInput').click();
 }
 
-function carregarImagem(event) {
+async function uploadImagem(event) {
   const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      loadImage(e.target.result, img => {
-        img.resize(canvasLargura, canvasAltura);
-        imagens.push(img);
-      });
-    };
-    reader.readAsDataURL(file);
+  if (!file) return;
+
+  const filename = Date.now() + '-' + file.name;
+
+  const { error } = await supabase
+    .storage
+    .from('images')
+    .upload(filename, file, { cacheControl: '3600', upsert: false });
+
+  if (error) {
+    alert('Erro ao enviar: ' + error.message);
+  } else {
+    const { data } = supabase
+      .storage
+      .from('images')
+      .getPublicUrl(filename);
+    loadImage(data.publicUrl, img => {
+      imagens.push(img);
+    });
   }
+}
+
+async function carregarImagensSupabase() {
+  const { data, error } = await supabase
+    .storage
+    .from('images')
+    .list('', { limit: 100, sortBy: { column: 'created_at', order: 'asc' } });
+
+  if (error) {
+    console.log('Erro ao listar imagens: ', error.message);
+    return;
+  }
+
+  data.forEach(arquivo => {
+    const { data: urlData } = supabase
+      .storage
+      .from('images')
+      .getPublicUrl(arquivo.name);
+    loadImage(urlData.publicUrl, img => {
+      imagens.push(img);
+    });
+  });
 }
 
 function limparImagens() {
@@ -94,10 +132,10 @@ function limparImagens() {
 }
 
 function salvarImagem() {
-  saveCanvas('fusao-imagens', 'png');
+  saveCanvas('fusao-compartilhada', 'png');
 }
 
-  </script>
+</script>
 
 </body>
 </html>
